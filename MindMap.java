@@ -1,3 +1,4 @@
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -16,6 +17,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
 import javax.imageio.ImageIO;
+import javax.swing.Action;
+import javax.swing.ComboBoxModel;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -26,6 +29,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
+import javax.swing.border.BevelBorder;
 import javax.swing.event.ListDataListener;
 //MYSQL 5.1.48 connecter ,jdk 1.8
 
@@ -85,9 +89,11 @@ public class MindMap {
     
     private JComboBox cb = new JComboBox();
         
+    private JButton delS = new JButton("Delete");
+
     private int idWordMap = 0;
 
-    private JFrame frame = new JFrame();
+    private JFrame frame = new JFrame("Frank's Mind Map");
 
     private JPanel panel = new JPanel();
 
@@ -100,46 +106,107 @@ public class MindMap {
     private JList jlist = new JList();
     
     private boolean fass = false;
+    
+    private boolean rdr = false;
+    
+    private JButton rdrun = new JButton("Random Run");
 
     public MindMap() {
-
+        frame.setResizable(false);
         setUI();
 
         connectToDataBase();
         drawComboBox();
         drawNew();
+        drawR();
+        
+        drawT();
 
         drawBrainNMap();
         refreshUI();
     }
+    
+    public void drawT() {
+        delS.setBounds(10, 170, 100, 20);
+        panel. add(delS);
+        delS .addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try{
+                    String str = "delete from mm where id = " + ((String) cb.getSelectedItem()).substring(0, ((String) cb.getSelectedItem()).indexOf(" ")) + ";";
+                    stmt.execute(str);
+                    drawComboBox();
+                    cb.setSelectedIndex(-1);
+                    
+                } catch(SQLException ss ) { }
+            }
+        });
+    }
+
+    public void drawR() {
+        rdrun.setBounds(10, 200, 120, 20);
+        panel. add(rdrun);
+        rdrun.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                rdr = !rdr;
+                try {
+                    Thread.sleep(35000);
+                } catch(InterruptedException ee) {
+                    ee.printStackTrace() ;
+                }
+                if(!rdr) {
+                    rdrun.setText("Random Run");
+                    
+                }
+                else 
+                    rdrun.setText("-Random Run");
+                
+                if(rdr) {
+                    Thread thread = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            while(true) {
+                                if(!rdr)
+                                    return;
+                                try {
+                                    if(cb.getSelectedIndex() == cb.getItemCount() - 1) {
+                                        cb.setSelectedIndex(0);
+                                    } else
+                                        cb.setSelectedIndex(cb.getSelectedIndex() + 1);
+                                    Thread.sleep(30000);
+                                } catch(Exception e) {}
+                            }
+                        }
+                    });
+                    thread.start();
+                }
+            }
+        });
+    }
 
     public void drawNew() {
-        
-        JLabel word = new JLabel();
-        word.setBounds(10, 300, 100, 20);
-        panel.add(word);
-        word.setForeground(Color.BLACK);
-        
         JTextField text = new JTextField();
-        text.setBounds(120-100, 300, 50, 20);
+        text.setBounds(120-100, 270, 150, 20);
         panel.add(text);
         JButton newWord = new JButton("Add");
         newWord.setBounds(180-100, 300, 100, 20);
-        JButton newMap = new JButton("NewMap");
-        newMap.setBounds(300-100, 300, 100, 20);
+        JButton newMap = new JButton("New Map");
+        newMap.setBounds(300-100, 300, 90, 20);
         panel.add(newMap);
         newMap.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 fass = !fass;
                 if(fass)
-                    newMap.setText("-newMap");
+                    newMap.setText("-new Map");
                 else
-                    newMap.setText("newMap");
+                    newMap.setText("new Map");
             }
         });
 
         panel.add(jlist);
+        jlist.setBackground(Color.RED);
         jlist.setBounds(150, 10, 120, 240);
         
         panel.add(newWord);
@@ -154,7 +221,7 @@ public class MindMap {
                     if(!fass) {
                         if (rs.next())
                         {
-                            max = rs.getInt("max");
+                            max = idWordMap;
                         } else {
                             max = 1;
                         }
@@ -193,6 +260,10 @@ public class MindMap {
                 }
             }
         });
+
+        panel.getGraphics().setColor(Color.red);
+        panel.getGraphics().drawString("Word: ", 10, 240);
+        
     }
     
     public void drawBrainNMap() {
@@ -209,7 +280,7 @@ public class MindMap {
                                 drawBrain();
 
                                 drawMap();
-                                Thread.sleep(5000);
+                                Thread.sleep(15000);
                             }
                             catch 
                                     (InterruptedException ie)
@@ -229,8 +300,12 @@ public class MindMap {
     }
 
     private void drawComboBox() {
+        panel.remove(cb);
+        cb = new JComboBox();
+        
         try
         {
+            Thread.sleep(1000);
             String sql = "select distinct id, word from mm order by id Asc;";
             ResultSet rs = stmt.executeQuery(sql);
             int ilast = 0;
@@ -247,14 +322,17 @@ public class MindMap {
             }
         }
         catch 
-                (SQLException s)
+                (Exception s)
         {
             s.printStackTrace();
         }
         cb.setBounds(10, 10, 120, 30);
 
         panel.add(cb);
-        
+
+        idWordMap = 1;
+        cb.setSelectedIndex(0);
+                
         cb.addItemListener(
                 new ItemListener()
                 {
@@ -262,11 +340,11 @@ public class MindMap {
                     public void itemStateChanged(ItemEvent e)
                     {
                         
-                        idWordMap = Integer.parseInt(cb.getSelectedItem().toString().substring(0, 
-                     
-                                cb.getSelectedItem().toString().indexOf(" ")));
-
                         try {
+                            idWordMap = Integer.parseInt(cb.getSelectedItem().toString().substring(0, 
+
+                                    cb.getSelectedItem().toString().indexOf(" ")));
+
                             String sql = "select word from mm where id = " + idWordMap + ";";
                             ResultSet rs = stmt.executeQuery(sql);
                             int ilast = 0;
@@ -276,6 +354,7 @@ public class MindMap {
                                 listModel.addElement(rs.getString("word"));
                             }
                             jlist.setModel(listModel);
+                            jlist.setBorder(new BevelBorder(BevelBorder.LOWERED));
                         } catch(SQLException s) {
                             s.printStackTrace();
                         }
@@ -284,7 +363,6 @@ public class MindMap {
         );
         
         
-        idWordMap = 1;
     }
     
     private void drawMap() {
@@ -317,7 +395,7 @@ public class MindMap {
                     {
                         try
                         {
-                            Thread.sleep(500);
+                            Thread.sleep(1500);
 
                             int b = 0;
                             while(b < lines.size())
@@ -331,7 +409,8 @@ public class MindMap {
 
                             g.setColor(Color.BLUE);
 
-                            g.drawLine(( (int[]) lines.get(i) )[0], ( (int[]) lines.get(i) )[1], 
+                            if(i < lines.size() - 2)
+                                g.drawLine(( (int[]) lines.get(i) )[0], ( (int[]) lines.get(i) )[1], 
                                     ( (int[]) lines.get(i+1) )[0], ( (int[]) lines.get(
                                             i+1) )[1]);
 
@@ -349,6 +428,18 @@ public class MindMap {
                         g.drawOval(( (int[]) lines.get(i-1) )[0], ( (int[]) lines.get(i-1) )[1], 20, 20);
                         g.setColor(Color.GREEN);
                         g.drawOval(( (int[]) lines.get(i) )[0], ( (int[]) lines.get(i) )[1], 20, 20);
+
+                        g.setColor(Color.BLUE);
+                        Random r = new Random();
+                        if(lines.size() > 1) {
+                            int ii = r.nextInt(lines.size() - 2);
+                            g.drawLine(( (int[]) lines.get(i) )[0], ( (int[]) lines.get(i) )[1], 
+                                        ( (int[]) lines.get(ii) )[0], ( (int[]) lines.get(
+                                                ii) )[1]);
+                        }
+
+                    } catch(ArrayIndexOutOfBoundsException ee) {
+                        
                     } catch(InterruptedException ii) {
                         
                     }
@@ -469,6 +560,34 @@ public class MindMap {
                     @Override
                     public void run()
                     {
+                        JFrame j = new JFrame("Mind Map");
+                        j.setLayout(null);
+                        j.setUndecorated(true);
+                        j.setBounds(0, 0, 300, 200);
+                        JPanel p = new JPanel();
+                        p.setBounds(j.getBounds());
+                        j.add(p);
+                        j.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+                        JLabel lable = new JLabel("Mind Map");
+                        lable.setText("Mind Map");
+                        lable.setFont(new Font("arial", Font.BOLD, 20));
+                        lable.setBounds(120, 80, 190, 40);
+                        lable.setForeground(Color.BLACK);
+                        p.setLayout(null);
+                        ///p.add(lable);
+                        j.setVisible(true);
+                        Graphics gr = p.getGraphics();
+                        gr.setColor(Color.WHITE);
+                        gr.fillRect(0, 0, 300, 200);
+                        gr.setColor(lable.getForeground());
+                        gr.setFont(lable.getFont());
+                        try {
+                            Image iiiii = ImageIO.read(getClass().getResourceAsStream("bg.jpg"));
+                            gr.drawImage(iiiii, 0, 0, 300, 200, j);
+                            gr.drawString("Mind Map", 120, 80);
+                            Thread.sleep(3000);
+                            j.dispose();
+                        } catch(Exception e) {e.printStackTrace();}
                         new MindMap();
                     }
                 }
