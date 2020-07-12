@@ -1,9 +1,11 @@
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.List;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -112,11 +114,11 @@ public class MindMap {
     private JButton rdrun = new JButton("Random Run");
 
     public MindMap() {
-        frame.setResizable(false);
         setUI();
 
         connectToDataBase();
         drawComboBox();
+        fillJList();
         drawNew();
         drawR();
         
@@ -124,6 +126,25 @@ public class MindMap {
 
         drawBrainNMap();
         refreshUI();
+    }
+    
+    private void fillJList() {
+        try {
+            if(cb.getItemCount() > 0) {
+                String sql = "select word from mm where id = "+idWordMap+";";
+                ResultSet rs = stmt.executeQuery(sql);
+                int ilast = 0;
+                DefaultListModel listModel = new DefaultListModel();
+                while (rs.next())
+                {
+                    listModel.addElement(rs.getString("word"));
+                }
+                jlist.setModel(listModel);
+                jlist.setBorder(new BevelBorder(BevelBorder.LOWERED));
+            }
+        } catch(SQLException s) {
+            s.printStackTrace();
+        }
     }
     
     public void drawT() {
@@ -187,7 +208,7 @@ public class MindMap {
 
     public void drawNew() {
         JTextField text = new JTextField();
-        text.setBounds(120-100, 270, 150, 20);
+        text.setBounds(120-100+100, 270, 150, 20);
         panel.add(text);
         JButton newWord = new JButton("Add");
         newWord.setBounds(180-100, 300, 100, 20);
@@ -260,10 +281,6 @@ public class MindMap {
                 }
             }
         });
-
-        panel.getGraphics().setColor(Color.red);
-        panel.getGraphics().drawString("Word: ", 10, 240);
-        
     }
     
     public void drawBrainNMap() {
@@ -280,6 +297,11 @@ public class MindMap {
                                 drawBrain();
 
                                 drawMap();
+                        g.setColor(Color.RED);
+                        g.setFont(new Font("arial", Font.BOLD, 40));
+                        g.drawString("Mind Map", 10, 400);
+                        g.setFont(new Font("arial", Font.BOLD, 30));
+                        g.drawString("Word:", 10, 270);
                                 Thread.sleep(15000);
                             }
                             catch 
@@ -378,6 +400,7 @@ public class MindMap {
             {
                 
                 g.setColor(Color.YELLOW);
+                g.setFont(new Font("arial", Font.BOLD, 20));
                 g.drawString(rs.getString("word"), rs.getInt("x")+400, rs.getInt("y"));
                 int obj[] = new int[2];
                 
@@ -541,6 +564,10 @@ public class MindMap {
 
         panel.setBounds(frame.getBounds());
         panel.setLayout(null);
+        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+        frame.setLocation(dim.width/2-frame.getSize().width/2, dim.height/2-frame.getSize().height/2);
+        frame.setLocationRelativeTo(null);
+        frame.setResizable(false);
 
         frame.add(panel);
 
@@ -561,13 +588,15 @@ public class MindMap {
                     public void run()
                     {
                         JFrame j = new JFrame("Mind Map");
-                        j.setLayout(null);
-                        j.setUndecorated(true);
+                        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
                         j.setBounds(0, 0, 300, 200);
                         JPanel p = new JPanel();
                         p.setBounds(j.getBounds());
                         j.add(p);
                         j.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+                        j.setLocation(dim.width/2-j.getSize().width/2, dim.height/2-j.getSize().height/2);                        j.setLayout(null);
+                        j.setLocationRelativeTo(null);
+                        j.setUndecorated(true);
                         JLabel lable = new JLabel("Mind Map");
                         lable.setText("Mind Map");
                         lable.setFont(new Font("arial", Font.BOLD, 20));
